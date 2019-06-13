@@ -18,7 +18,7 @@ python train.py [--X the path of domain X] [--Y the path of domain Y] [--image_s
 ## Results preview
 step-17100 to step-17400
 
-cycle-GP:
+cycleGAN-GP:
 
 <p align="center">
   <img src="/Related images/step-17100.png">
