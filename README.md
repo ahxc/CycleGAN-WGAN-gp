@@ -16,7 +16,7 @@ python train.py [--X the path of domain X] [--Y the path of domain Y] [--image_s
 ```
 
 ## Results preview
-step-17100 to step-17400
+training step-17100 to step-17400, from left to right are input image, converted image, and restored image 
 
 cycleGAN-GP:
 
