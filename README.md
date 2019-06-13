@@ -18,6 +18,12 @@ python train.py [--X the path of domain X] [--Y the path of domain Y] [--image_s
 ## Results preview
 cycle-GP:
 
+<p align="center">
+  <img src="/Related images/step-17100.png.png">
+  <img src="/Related images/step-17200.png.png">
+  <img src="/Related images/step-17300.png.png">
+  <img src="/Related images/step-17400.png.png">
+</p>
 
 
 cycleGAN:
