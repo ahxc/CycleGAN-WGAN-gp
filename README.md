@@ -10,7 +10,7 @@ windows 10
 [man2woman](https://pan.baidu.com/s/1i5qY3yt)
 
 ## Training
-The "[]" means an optional operation, please refer to the tf.flag settings for details and other optional operation
+The "[]" means an optional operation, please refer to the tf.flag settings for details and other optional operations
 ```
 python train.py [--X the path of domain X] [--Y the path of domain Y] [--image_size 256]
 ```
@@ -19,16 +19,21 @@ python train.py [--X the path of domain X] [--Y the path of domain Y] [--image_s
 cycle-GP:
 
 <p align="center">
-  <img src="/Related images/step-17100.png.png">
-  <img src="/Related images/step-17200.png.png">
-  <img src="/Related images/step-17300.png.png">
-  <img src="/Related images/step-17400.png.png">
+  <img src="/Related images/step-17100.png">
+  <img src="/Related images/step-17200.png">
+  <img src="/Related images/step-17300.png">
+  <img src="/Related images/step-17400.png">
 </p>
 
 
 cycleGAN:
 
-
+<p align="center">
+  <img src="/Related images/out17100.png">
+  <img src="/Related images/out17200.png">
+  <img src="/Related images/out17300.png">
+  <img src="/Related images/out17400.png">
+</p>
 
 ## References
 code: [github-CycleGAN](https://github.com/vanhuyz/CycleGAN-TensorFlow)
