@@ -97,6 +97,10 @@ def batch_norm(input_, name = "batch_norm"):
         normalized = (input_ - mean) * inv# 标准化
 
         return scale * normalized + offset# 线性函数
+
+# 定义实例归一化层
+def instance_norm(input_, scope = 'instance_norm'):
+    return tf.contrib.layers.instance_norm(input_, epsilon = 1e-05, center = True, scale = True, scope = scope)
  
 #定义最大池化层
 def max_pooling(input_, kernel_size, stride, name, padding = "SAME"):
@@ -122,16 +126,16 @@ def tanh(input_, name = "tanh"):
 def residule_block_33(input_, output_dim, kernel_size = 3, stride = 1, dilation = 2, atrous = False, name = "resnet"):
     if atrous:# 采用空洞卷积的方式
         conv2dc0 = atrous_conv2d(input_ = input_, output_dim = output_dim, kernel_size = kernel_size, dilation = dilation, name = (name + '_conv1'))
-        conv2dc0_norm = batch_norm(input_ = conv2dc0, name = (name + '_bn1'))
+        conv2dc0_norm = instance_norm(input_ = conv2dc0, scope = (name + '_insn_1'))
         conv2dc0_relu = relu(input_ = conv2dc0_norm)
         conv2dc1 = atrous_conv2d(input_ = conv2dc0_relu, output_dim = output_dim, kernel_size = kernel_size, dilation = dilation, name = (name + '_conv2'))
-        conv2dc1_norm = batch_norm(input_ = conv2dc1, name = (name + '_bn2'))
+        conv2dc1_norm = instance_norm(input_ = conv2dc1, scope = (name + '_insn_2'))
     else:# 采用卷积的方式
         conv2dc0 = conv2d(input_ = input_, output_dim = output_dim, kernel_size = kernel_size, stride = stride, name = (name + '_conv1'))
-        conv2dc0_norm = batch_norm(input_ = conv2dc0, name = (name + '_bn1'))
+        conv2dc0_norm = instance_norm(input_ = conv2dc0, scope = (name + '_insn_1'))
         conv2dc0_relu = relu(input_ = conv2dc0_norm)
         conv2dc1 = conv2d(input_ = conv2dc0_relu, output_dim = output_dim, kernel_size = kernel_size, stride = stride, name = (name + '_conv2'))
-        conv2dc1_norm = batch_norm(input_ = conv2dc1, name = (name + '_bn2'))
+        conv2dc1_norm = instance_norm(input_ = conv2dc1, scope = (name + '_insn_2'))
 
     return relu(input_ = input_ + conv2dc1_norm)
 
@@ -163,20 +167,28 @@ D_loss += tf.reduce_mean(tf.square(D_real))* 0.001
 def l1_loss(src, dst):
     return tf.reduce_mean(tf.abs(src - dst))
 
-# 定义单个G/D的loss
-def single_loss(src):
-    return tf.reduce_mean((src - tf.ones_like(src)) ** 2)
+# 定义G的loss
+def G_loss(D_fake):
+    return tf.reduce_mean(D_fake)
+
+# 定义D的loss
+def D_loss(D_real, D_fake):
+    return tf.reduce_mean(D_real ** 2) + tf.reduce_mean(D_fake ** 2)
 
 # 定义判别器损失的梯度惩罚
 def gradient_penalty(real, fake, gp_lambda, reuse = False, name = 'discriminator'):
     difference = fake - real# 生成图像与真实图像的差异
-    alpha = tf.random_uniform(shape = [1, 1, 1, 1], minval = 0., maxval = 1.)# tf.random_uniform从均匀分布中生成形状为shape，满足最大最小的随机数
+
+    # tf.random_uniform从均匀分布中生成形状为shape，满足最大最小的随机数
+    alpha = tf.random_uniform(shape = [1, 1, 1, 1], minval = 0., maxval = 1.)
     interpolates = real + alpha * difference# 真实图像加上差异
 
     # 求导返回值是一个list，list的长度等于x个数
     # 参数y，x，xy为多值或单一值，返回值：[sum(dy_1/dx_1, ... ,dy_n/dx_1), sum(dy_1/dx_2, ... ,dy_n/dx_2)]
     gradients = tf.gradients(discriminator(interpolates, reuse = reuse, name = name), [interpolates])[0]# 返回值是包含一个元素的list
-    slopes = tf.sqrt(tf.reduce_sum(tf.square(gradients), reduction_indices = [1,2,3]))# reduction_indices：废弃的维度，直观理解就是将指定维度加到剩余维度上
+
+    # reduction_indices：废弃的维度，直观理解就是将指定维度加到剩余维度上变成剩余维度
+    slopes = tf.sqrt(tf.reduce_sum(tf.square(gradients), reduction_indices = [1,2,3]))
     gradient_penalty = tf.reduce_mean((slopes - 1.) ** 2)
 
     return gp_lambda * gradient_penalty
@@ -191,11 +203,11 @@ def generator(image, gf_dim=64, reuse=False, name="generator"):
         else:
             assert tf.get_variable_scope().reuse is False# 如果assert后的语句为False，则报错
         # 第1个卷积模块，输出尺度: 1*256*256*64  
-        c0 = relu(batch_norm(conv2d(input_ = image, output_dim = gf_dim, kernel_size = 7, stride = 1, name = 'g_e0_c'), name = 'g_e0_bn'))
+        c0 = relu(instance_norm(conv2d(input_ = image, output_dim = gf_dim, kernel_size = 7, stride = 1, name = 'g_e0_c'), scope = 'g_insn_1'))
         # 第2个卷积模块，输出尺度: 1*128*128*128
-        c1 = relu(batch_norm(conv2d(input_ = c0, output_dim = gf_dim * 2, kernel_size = 3, stride = 2, name = 'g_e1_c'), name = 'g_e1_bn'))
+        c1 = relu(instance_norm(conv2d(input_ = c0, output_dim = gf_dim * 2, kernel_size = 3, stride = 2, name = 'g_e1_c'), scope = 'g_insn_2'))
         # 第3个卷积模块，输出尺度: 1*64*64*256
-        c2 = relu(batch_norm(conv2d(input_ = c1, output_dim = gf_dim * 4, kernel_size = 3, stride = 2, name = 'g_e2_c'), name = 'g_e2_bn'))
+        c2 = relu(instance_norm(conv2d(input_ = c1, output_dim = gf_dim * 4, kernel_size = 3, stride = 2, name = 'g_e2_c'), scope = 'g_insn_3'))
 
         # 9个残差块:
         r1 = residule_block_33(input_ = c2, output_dim = gf_dim * 4, atrous = False, name = 'g_r1')
@@ -210,9 +222,9 @@ def generator(image, gf_dim=64, reuse=False, name="generator"):
         # 第9个残差块的输出尺度: 1*64*64*256
  
         # 第1个反卷积模块，输出尺度: 1*128*128*128
-        d1 = relu(batch_norm(deconv2d(input_ = r9, output_dim = gf_dim * 2, kernel_size = 3, stride = 2, name = 'g_d1_dc'),name = 'g_d1_bn'))
+        d1 = relu(instance_norm(deconv2d(input_ = r9, output_dim = gf_dim * 2, kernel_size = 3, stride = 2, name = 'g_d1_dc'), scope = 'g_insn_4'))
         # 第2个反卷积模块，输出尺度: 1*256*256*64
-        d2 = relu(batch_norm(deconv2d(input_ = d1, output_dim = gf_dim, kernel_size = 3, stride = 2, name = 'g_d2_dc'),name = 'g_d2_bn'))
+        d2 = relu(instance_norm(deconv2d(input_ = d1, output_dim = gf_dim, kernel_size = 3, stride = 2, name = 'g_d2_dc'), scope = 'g_insn_5'))
         # 最后一个卷积模块，输出尺度: 1*256*256*3(还原至输入情况)
         d3 = conv2d(input_=d2, output_dim  = input_dim, kernel_size = 7, stride = 1, name = 'g_d3_c')
         # 经过tanh函数激活得到生成的输出
@@ -228,11 +240,11 @@ def discriminator(image, df_dim=64, reuse = False, name="discriminator"):
         # 第1个卷积模块，输出尺度: 1*128*128*64
         h0 = lrelu(conv2d(input_ = image, output_dim = df_dim, kernel_size = 4, stride = 2, name = 'd_h0_conv'))
         # 第2个卷积模块，输出尺度: 1*64*64*128
-        h1 = lrelu(batch_norm(conv2d(input_ = h0, output_dim = df_dim * 2, kernel_size = 4, stride = 2, name = 'd_h1_conv'), 'd_bn1'))
+        h1 = lrelu(instance_norm(conv2d(input_ = h0, output_dim = df_dim * 2, kernel_size = 4, stride = 2, name = 'd_h1_conv'), scope = 'd_insn_1'))
         # 第3个卷积模块，输出尺度: 1*32*32*256
-        h2 = lrelu(batch_norm(conv2d(input_ = h1, output_dim = df_dim * 4, kernel_size = 4, stride = 2, name = 'd_h2_conv'), 'd_bn2'))
+        h2 = lrelu(instance_norm(conv2d(input_ = h1, output_dim = df_dim * 4, kernel_size = 4, stride = 2, name = 'd_h2_conv'), scope = 'd_insn_2'))
         # 第4个卷积模块，输出尺度: 1*32*32*512
-        h3 = lrelu(batch_norm(conv2d(input_ = h2, output_dim = df_dim * 8, kernel_size = 4, stride = 1, name = 'd_h3_conv'), 'd_bn3'))
+        h3 = lrelu(instance_norm(conv2d(input_ = h2, output_dim = df_dim * 8, kernel_size = 4, stride = 1, name = 'd_h3_conv'), scope = 'd_insn_3'))
         # 最后一个卷积模块，输出尺度: 1*32*32*1
         output = conv2d(input_ = h3, output_dim = 1, kernel_size = 4, stride = 1, name = 'd_h4_conv')
         return output

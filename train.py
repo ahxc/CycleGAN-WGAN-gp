@@ -31,7 +31,7 @@ tf.flags.DEFINE_integer("summary_step", 100, "times to summary")# 训练中每�
 tf.flags.DEFINE_integer("outfile_step", 100, "times to outfile")# 训练中每过多少step保存可视化图像
 tf.flags.DEFINE_integer("loss_step", 100, "times to outfile")# 训练中每过多少step打印训练损失
 
-tf.flags.DEFINE_float("gp_lambda", 1, "Weight of gradient penalty term, default: 5")# 训练中梯度惩罚前的乘数
+tf.flags.DEFINE_float("gp_lambda", 5, "Weight of gradient penalty term, default: 5")# 训练中梯度惩罚前的乘数
 tf.flags.DEFINE_float("l1_lambda", 10, "Weight of l1_loss, default: 10")# 训练中L1_Loss前的乘数
 tf.flags.DEFINE_float("learning_rate", 2e-4, "initial learning rate, default: 0.0002")# 基本训练学习率
 tf.flags.DEFINE_float("beta1", 0.5, "momentum term of adam, default: 0.5")# adam学习器的beta1参数
@@ -169,16 +169,21 @@ def main():
     dx_real = discriminator(image = x_img, reuse = True, name = 'discriminator_x')# 判别器返回的对真实的x域图像的判别结果
 
     # 计算生成器的损失
-    gen_loss = single_loss(dx_fake) + single_loss(dy_fake) + FLAGS.l1_lambda * l1_loss(x_img, G_fakey_fakex) + FLAGS.l1_lambda * l1_loss(y_img, G_fakex_fakey)
+    # 用以风格转化
+    # 用以重构还原
+    gen_loss = G_loss(dx_fake) + G_loss(dy_fake) + \
+    FLAGS.l1_lambda * l1_loss(x_img, G_fakey_fakex) + FLAGS.l1_lambda * l1_loss(y_img, G_fakex_fakey)
  
     # y域判别器损失
-    dy_loss = (single_loss(dy_real) + single_loss(dy_fake)) / 2# 计算判别器判别的y域图像的loss
+    # 判别y域的真与假
+    dy_loss = D_loss(dy_real, dy_fake)# 计算判别器判别的y域图像的loss
 
     # y域梯度惩罚
     # dy_loss += gradient_penalty(y_img, G_realx_fakey, FLAGS.gp_lambda, reuse = True, name = 'discriminator_y')
  
     # x域判别器损失
-    dx_loss = (single_loss(dx_real) + single_loss(dx_fake)) / 2# 计算判别器判别的x域图像的loss
+    # 判别x域的真与假
+    dx_loss = D_loss(dx_real, dx_fake)# 计算判别器判别的x域图像的loss
 
     # x域梯度惩罚
     # dx_loss += gradient_penalty(x_img, G_realy_fakex, FLAGS.gp_lambda, reuse = True, name = 'discriminator_x')
@@ -190,8 +195,8 @@ def main():
     
     # 记录判别器的loss的日志
     dis_loss_sum = tf.summary.scalar("dis_loss", dis_loss)
-    dx_loss_sum = tf.summary.scalar("dx_loss", dx_loss) #记录判别器判别的x域图像的loss的日志
-    dy_loss_sum = tf.summary.scalar("dy_loss", dy_loss) #记录判别器判别的y域图像的loss的日志
+    dx_loss_sum = tf.summary.scalar("dx_loss", dx_loss)# 记录判别器判别的x域图像的loss的日志
+    dy_loss_sum = tf.summary.scalar("dy_loss", dy_loss)# 记录判别器判别的y域图像的loss的日志
 
     # 合并判别器日志
     discriminator_sum = tf.summary.merge([dx_loss_sum, dy_loss_sum, dis_loss_sum])
