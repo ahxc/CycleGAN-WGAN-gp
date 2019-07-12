@@ -16,7 +16,7 @@ def conv(X, fmaps, kernel_size, stride, padding='SAME', scope='conv', biased=Fal
 
         X = tf.nn.conv2d(input=X,
                          filter=kernel,
-                         stride=[1, stride, stride, 1],
+                         strides=[1, stride, stride, 1],
                          padding=padding)
 
         if biased:
@@ -38,8 +38,8 @@ def deconv(X, fmaps, kernel_size, stride, padding='SAME', scope='deconv'):
                           shape=[kernel_size, kernel_size, fmaps, channel])
         
         X = tf.nn.conv2d_transpose(value=X,
-                                   fileter=kernel,
-                                   output_shape=[1, height*2, input_width*2, fmaps],
+                                   filter=kernel,
+                                   output_shape=[1, height*2, width*2, fmaps],
                                    strides=[1, stride, stride, 1],
                                    padding=padding)
 
@@ -68,12 +68,12 @@ def relu(X):
 def tanh(X):
     return tf.nn.tanh(X)
 
-def leaky_relu(X, alpha):
+def leaky_relu(X, alpha=0.2):
     return tf.nn.leaky_relu(X, alpha)
 #-----------------------------------------------------------------------------------
 # 残差块
 def res_block(X, fmaps, kernel_size=3, stride=1,scope='res_block'):
-    with tf.variable_scope(scope)
+    with tf.variable_scope(scope):
         f_X = conv(X=X,
                    fmaps=fmaps,
                    kernel_size=kernel_size,
@@ -97,19 +97,19 @@ def generator(X, fmaps=64, reuse=False, scope='generator'):
 
     with tf.variable_scope(scope):
         if reuse:
-            tf.variable_scope().reuse_variables()
+            tf.get_variable_scope().reuse_variables()
         else:
-            assert tf.variable_scope().reuse is False
+            assert tf.get_variable_scope().reuse is False
 
-        X = conv(X=X, fmaps=fmaps, kerner_size=7, stride=1, scope=scope+'_conv1')
+        X = conv(X=X, fmaps=fmaps, kernel_size=7, stride=1, scope=scope+'_conv1')
         X = instance_norm(X=X, scope=scope+'_instance_norm1')
         X = relu(X)
 
-        X = conv(X=X, fmaps=fmaps*2, kerner_size=3, stride=2, scope=scope+'_conv2')
+        X = conv(X=X, fmaps=fmaps*2, kernel_size=3, stride=2, scope=scope+'_conv2')
         X = instance_norm(X=X, scope=scope+'_instance_norm2')
         X = relu(X)
 
-        X = conv(X=X, fmaps=fmaps*4, kerner_size=3, stride=2, scope=scope+'_conv3')
+        X = conv(X=X, fmaps=fmaps*4, kernel_size=3, stride=2, scope=scope+'_conv3')
         X = instance_norm(X=X, scope=scope+'_instance_norm3')
         X = relu(X)
 
@@ -132,9 +132,9 @@ def generator(X, fmaps=64, reuse=False, scope='generator'):
 def discriminator(X, fmaps=64, reuse=False, scope='discriminator'):
     with tf.variable_scope(scope):
         if reuse:
-            tf.variable_scope().reuse_variables()
+            tf.get_variable_scope().reuse_variables()
         else:
-            assert tf.variable_scope().reuse is False
+            assert tf.get_variable_scope().reuse is False
 
         X = conv(X=X, fmaps=fmaps, kernel_size=4, stride=2, scope=scope+'_conv1')
         X = leaky_relu(X)
@@ -144,11 +144,11 @@ def discriminator(X, fmaps=64, reuse=False, scope='discriminator'):
         X = leaky_relu(X)
 
         X = conv(X=X, fmaps=fmaps*4, kernel_size=4, stride=2, scope=scope+'_conv3')
-        X = instance_norm(X=X, scope='_instance_norm1')
+        X = instance_norm(X=X, scope='_instance_norm2')
         X = leaky_relu(X)
 
         X = conv(X=X, fmaps=fmaps*8, kernel_size=4, stride=1, scope=scope+'_conv4')
-        X = instance_norm(X=X, scope='_instance_norm1')
+        X = instance_norm(X=X, scope='_instance_norm3')
         X = leaky_relu(X)
 
         X = conv(X=X, fmaps=1, kernel_size=4, stride=1, scope=scope+'_conv5')

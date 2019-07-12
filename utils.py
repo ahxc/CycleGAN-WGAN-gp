@@ -1,5 +1,8 @@
 import tensorflow as tf
 import numpy as np
+import os
+import glob
+import cv2
 #-----------------------------------------------------------------------------------
 # 图像读取
 def imreader(x_list, y_list, step, size):
@@ -22,7 +25,7 @@ def imreader(x_list, y_list, step, size):
 # 文件目录创建
 def check_dir(path):
     if not os.path.exists(path):
-        os.makedirs(logdir)
+        os.makedirs(path)
 #-----------------------------------------------------------------------------------
 # 模型存储
 def save(saver, sess, logdir, step):
@@ -58,19 +61,19 @@ def imget(x_image, y_image, G_realx_fakey, G_fakey_fakex, G_realy_fakex, G_fakex
 # 对齐两个域图片数量
 def alignment_data(A, B):
     if len(A) == len(B):
-        return A, B, Bs
+        return A, B
 
     if len(A) < len(B):
-        return A, sorted(B)[:len(A)], sorted(Bs)[:len(A)]
+        return A, sorted(B)[:len(A)]
 
-    return A[:len(B)], B, Bs
+    return A[:len(B)], B
 #-----------------------------------------------------------------------------------
 # 获取图片的路径列表
-def make_train_data_list(dataset_path):
+def make_train_data_list(x_data_path, y_data_path):
     x_input_images_raw = glob.glob(os.path.join(x_data_path, "*"))
     y_input_images_raw = glob.glob(os.path.join(y_data_path, "*"))
     
-    return add_train_list(x_input_images_raw, y_input_images_raw)
+    return alignment_data(x_input_images_raw, y_input_images_raw)
 #-----------------------------------------------------------------------------------
 # 增加批次维度
 def expand_dims(img):

@@ -21,26 +21,22 @@ def g_loss(fake, GAN_type):
     return loss
 #-----------------------------------------------------------------------------------
 # 判别器损失
-def d_loss(real, fake, real_blur, GAN_type):
+def d_loss(real, fake, GAN_type):
     if GAN_type == 'GAN': 
         real_loss = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(
                                    labels=tf.ones_like(real), logits=real))
         fake_loss = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(
                                    labels=tf.zeros_like(fake), logits=fake))
-        blured_real_loss = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(
-                                   labels=tf.zeros_like(blured_real), logits=blured_real))
 
     if GAN_type == 'WGAN':
         real_loss = -tf.reduce_mean(real)
         fake_loss = tf.reduce_mean(fake)
-        blured_real_loss = tf.reduce_mean(blured_real)
 
     if GAN_type == 'LSGAN':
         real_loss = tf.reduce_mean((real-tf.ones_like(real))**2)
         fake_loss = tf.reduce_mean(fake**2)
-        blured_real_loss = tf.reduce_mean(blured_real**2)
 
-    return real_loss+fake_loss+blured_real_loss
+    return real_loss+fake_loss
 #-----------------------------------------------------------------------------------
 # 梯度惩罚
 def gradient_penalty(real_img, fake_image, scope='discriminator'):

@@ -48,17 +48,17 @@ def main():
         check_dir(model_path)
         check_dir(outfile_path)
 
-    X_path = os.path.join(FLAGS.dataset, trainA)
-    Y_path = os.path.join(FLAGS.dataset, trainB)
+    X_path = os.path.join(FLAGS.dataset, 'trainA')
+    Y_path = os.path.join(FLAGS.dataset, 'trainB')
 
     x_datalists, y_datalists = make_train_data_list(X_path, Y_path)
 
     tf.set_random_seed(FLAGS.random_seed)
 
     # 输入占位
-    x_img = tf.placeholder(tf.float32, shape=[1, FLAGS.image_size, FLAGS.image_size, 3], scope='x_img')
-    y_img = tf.placeholder(tf.float32, shape=[1, FLAGS.image_size, FLAGS.image_size, 3], scope='y_img')
-    lr = tf.placeholder(tf.float32, None, scope='learning_rate')
+    x_img = tf.placeholder(tf.float32, shape=[1, FLAGS.image_size, FLAGS.image_size, 3], name='x_img')
+    y_img = tf.placeholder(tf.float32, shape=[1, FLAGS.image_size, FLAGS.image_size, 3], name='y_img')
+    lr = tf.placeholder(tf.float32, None, name='learning_rate')
  
     G_realx_fakey = generator(X=x_img, reuse=False, scope='generator_x2y')
     G_fakey_fakex = generator(X=G_realx_fakey, reuse=False, scope='generator_y2x')
@@ -71,11 +71,11 @@ def main():
     dx_real = discriminator(X=x_img, reuse=True, scope='discriminator_x')
 
     # 定义损失
-    gen_loss = g_loss(dx_fake)+g_loss(dy_fake)+\
+    gen_loss = g_loss(dx_fake, FLAGS.GAN_type)+g_loss(dy_fake, FLAGS.GAN_type)+\
     FLAGS.l1_lambda*l1_loss(x_img, G_fakey_fakex)+FLAGS.l1_lambda*l1_loss(y_img, G_fakex_fakey)
 
-    dy_loss = D_loss(dy_real, dy_fake)
-    dx_loss = D_loss(dx_real, dx_fake)
+    dy_loss = d_loss(dy_real, dy_fake, FLAGS.GAN_type)
+    dx_loss = d_loss(dx_real, dx_fake, FLAGS.GAN_type)
 
     if FLAGS.GAN_type == 'WGAN':
         dy_loss += gradient_penalty(y_img, G_realx_fakey, FLAGS.gp_lambda, reuse=True, scope='discriminator_y')
@@ -99,8 +99,8 @@ def main():
 
     adam = tf.train.AdamOptimizer(lr, beta1 = FLAGS.beta1)
  
-    d_grads_and_vars = adam.compute_gradients(dis_loss, var_list = d_vars)
-    g_grads_and_vars = adam.compute_gradients(gen_loss, var_list = g_vars)
+    d_grads_and_vars = adam.compute_gradients(dis_loss, var_list=d_vars)
+    g_grads_and_vars = adam.compute_gradients(gen_loss, var_list=g_vars)
 
     d_train = adam.apply_gradients(d_grads_and_vars)
     g_train = adam.apply_gradients(g_grads_and_vars)
@@ -138,7 +138,7 @@ def main():
             shuffle(x_datalists)
             shuffle(y_datalists)
 
-        x_image_resize, y_image_resize = TrainImageReader(x_datalists, y_datalists, step, FLAGS.image_size)
+        x_image_resize, y_image_resize = imreader(x_datalists, y_datalists, step, FLAGS.image_size)
 
         batch_x_image = expand_dims(x_image_resize)
         batch_y_image = expand_dims(y_image_resize)
