@@ -10,9 +10,8 @@ windows 10
 [man2woman](https://pan.baidu.com/s/1i5qY3yt)
 
 ## Training
-The "[]" means an optional operation, please refer to the tf.flag settings for details and other optional operations
 ```
-python train.py [--X the path of domain X] [--Y the path of domain Y] [--image_size 256]
+python train.py --dataset person2cartoon --image_size 256 --...
 ```
 
 ## Results preview
